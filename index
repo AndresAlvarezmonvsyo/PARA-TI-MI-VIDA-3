@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <title>Colorful Spiral Pattern with Audio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #262626;
+            overflow: hidden;
+            touch-action: none;
+        }
+        canvas {
+            display: block;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+        }
+        .music-btn {
+            background-color: #540d6e;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+        }
+        .music-btn:hover {
+            background-color: #7b1fa2;
+        }
+        .music-btn i {
+            pointer-events: none;
+        }
+        #playBtn {
+            display: block;
+        }
+        #pauseBtn {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="flowerCanvas" width="800" height="800"></canvas>
+    <div class="controls">
+        <button id="playBtn" class="music-btn"><i class="fas fa-play"></i></button>
+        <button id="pauseBtn" class="music-btn"><i class="fas fa-pause"></i></button>
+    </div>
+
+    <audio id="backgroundMusic" loop>
+        <source src="https://raw.githubusercontent.com/AndresAlvarezmonvsyo/Im-genes/main/Amarte%20por%20mil%20a%C3%B1os%20m%C3%A1s%20%E2%9D%A4%EF%B8%8F%20%5Bespa%C3%B1ol%5D%20(letra).mp3" type="audio/mp3">
+        Your browser does not support the audio element.
+    </audio>
+
+    <script>
+        $(document).ready(function() {
+            const canvas = document.getElementById('flowerCanvas');
+            const ctx = canvas.getContext('2d');
+            const audio = document.getElementById('backgroundMusic');
+            const playBtn = document.getElementById('playBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            
+            // Set up audio context for autoplay workaround
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const audioContext = new AudioContext();
+            
+            // Flag to track if audio has been initialized
+            let audioInitialized = false;
+            
+            // Function to handle audio initialization
+            function initAudio() {
+                if (!audioInitialized) {
+                    audioContext.resume().then(() => {
+                        audioInitialized = true;
+                    });
+                }
+            }
+            
+            // Handle play button click
+            playBtn.addEventListener('click', function() {
+                initAudio();
+                audio.play();
+                playBtn.style.display = 'none';
+                pauseBtn.style.display = 'block';
+            });
+            
+            // Handle pause button click
+            pauseBtn.addEventListener('click', function() {
+                audio.pause();
+                pauseBtn.style.display = 'none';
+                playBtn.style.display = 'block';
+            });
+            
+            // Initialize audio on user interaction
+            document.addEventListener('click', function() {
+                initAudio();
+            }, { once: false });
+            
+            // Handle audio play/end events
+            audio.addEventListener('play', function() {
+                playBtn.style.display = 'none';
+                pauseBtn.style.display = 'block';
+            });
+            
+            audio.addEventListener('pause', function() {
+                pauseBtn.style.display = 'none';
+                playBtn.style.display = 'block';
+            });
+            
+            // Similar to turtle setup
+            const width = 800;
+            const height = 800;
+            
+            // Center of canvas
+            const centerX = width / 2;
+            const centerY = height / 2;
+            
+            // Colors from Python code
+            const colors = ['#FF78C4', '#970BAE', '#C1EFFF', '#F0B86E'];
+            
+            // Variables to track current position and heading
+            let x = centerX;
+            let y = centerY;
+            let heading = 0; // in radians
+            
+            // Animation variables
+            let stepCount = 0;
+            let maxSteps = 400;
+            let patternCount = 0;
+            
+            function degToRad(degrees) {
+                return degrees * Math.PI / 180;
+            }
+            
+            function forward(distance) {
+                const newX = x + Math.cos(heading) * distance;
+                const newY = y + Math.sin(heading) * distance;
+                ctx.lineTo(newX, newY);
+                x = newX;
+                y = newY;
+            }
+            
+            function left(angle) {
+                heading -= degToRad(angle);
+            }
+            
+            function drawCirclePart(radius, extent) {
+                // Approximate circle segment with small line segments
+                const segments = 20;
+                const angleStep = degToRad(extent) / segments;
+                const originalHeading = heading;
+                
+                for (let i = 0; i < segments; i++) {
+                    forward(2 * radius * Math.sin(angleStep / 2));
+                    left(extent / segments);
+                }
+                
+                return heading;
+            }
+            
+            function animate() {
+                if (stepCount >= maxSteps) {
+                    stepCount = 0;
+                    patternCount++;
+                    
+                    if (patternCount >= 3) {
+                        // Reset everything after completing 3 patterns
+                        ctx.clearRect(0, 0, width, height);
+                        patternCount = 0;
+                        heading = 0;
+                    } else {
+                        // Turn left 30 degrees between patterns
+                        left(30);
+                    }
+                }
+                
+                // Draw next step
+                const n = stepCount;
+                const colorIndex = n % 4;
+                const radius = 190 - n / 2;
+                
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.strokeStyle = colors[colorIndex];
+                
+                // First 90 degree circle
+                drawCirclePart(radius, 90);
+                ctx.stroke();
+                
+                // Turn left 90
+                left(90);
+                
+                // Second 90 degree circle
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                ctx.strokeStyle = colors[colorIndex];
+                drawCirclePart(radius, 90);
+                ctx.stroke();
+                
+                stepCount++;
+                
+                // Continue animation
+                requestAnimationFrame(animate);
+            }
+            
+            // Start animation
+            function init() {
+                ctx.clearRect(0, 0, width, height);
+                x = centerX;
+                y = centerY;
+                heading = 0;
+                stepCount = 0;
+                patternCount = 0;
+                
+                // Start the animation
+                animate();
+            }
+            
+            // Start when canvas is clicked
+            $(canvas).click(function() {
+                init();
+                
+                // Try to play audio if canvas is clicked
+                if (audioInitialized) {
+                    audio.play().then(() => {
+                        playBtn.style.display = 'none';
+                        pauseBtn.style.display = 'block';
+                    });
+                }
+            });
+            
+            // Prevent zoom on mobile
+            document.addEventListener('touchmove', function(event) {
+                if (event.scale !== 1) {
+                    event.preventDefault();
+                }
+            }, { passive: false });
+            
+            // Initial start
+            init();
+        });
+    </script>
+</body>
+</html>
